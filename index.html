@@ -53,7 +53,7 @@ a{color:#7cb7ff;text-decoration:none}
   <div class="ctl">
     <select id="cat"></select>
     <select id="qty"><option value="2">2매 연석</option><option value="all">전체 수량</option></select>
-    <select id="bucket"><option value="60000">1분봉</option><option value="300000">5분봉</option><option value="900000">15분봉</option><option value="3600000">1시간봉</option></select>
+    <select id="bucket"><option value="60000">1분봉</option><option value="300000" selected>5분봉</option><option value="900000">15분봉</option><option value="3600000">1시간봉</option></select>
     <select id="poll"><option value="10000">10초</option><option value="20000" selected>20초</option><option value="60000">60초</option></select>
     <button id="pause">일시정지</button>
   </div>
@@ -68,11 +68,12 @@ a{color:#7cb7ff;text-decoration:none}
 <script>
 (function(){
 var REPO_DATA='https://raw.githubusercontent.com/whysowlee/ticket-candles/refs/heads/data/';
+var API_DATA='https://api.github.com/repos/whysowlee/ticket-candles/contents/';
 var API='https://www.ticketbay.co.kr/ticketbayApi/product/v1/public/products';
 var SITE='https://www.ticketbay.co.kr';
 var GAMES={6948:'한국시리즈 1차전 [수원]',6949:'한국시리즈 2차전 [수원]',6950:'한국시리즈 3차전 [대구]',6951:'한국시리즈 4차전 [대구]',6952:'한국시리즈 5차전 [대구]',6953:'한국시리즈 6차전 [수원]',6954:'한국시리즈 7차전 [수원]'};
 var ALL='★ 전체',TH=100000,MINP=10000;
-var S={cat:6950,qty:'2',bucket:60000,poll:20000,paused:false,sel:null,hover:null,items:[],prev:null,logs:[],hist:{},live:{},lastG:null,busy:false,next:0,histOk:false,histAt:0};
+var S={cat:6950,qty:'2',bucket:300000,poll:20000,paused:false,sel:null,hover:null,items:[],prev:null,logs:[],hist:{},live:{},lastG:null,busy:false,next:0,histOk:false,histAt:0};
 var $=function(s){return document.querySelector(s)};
 function man(n){return parseFloat((n/10000).toFixed(2))+'만'}
 function fmt(n){return Math.round(n).toLocaleString('ko-KR')}
@@ -85,7 +86,7 @@ var cs=$('#cat');for(var gk in GAMES){var o=document.createElement('option');o.v
 /* ---------- 데이터 ---------- */
 function loadHist(){
   var cat=S.cat,qty=S.qty;
-  return fetch(REPO_DATA+cat+'-'+qty+'.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
+  return fetch(API_DATA+cat+'-'+qty+'.json?ref=data&t='+Date.now(),{headers:{Accept:'application/vnd.github.raw'},cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return fetch(REPO_DATA+cat+'-'+qty+'.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()})}).then(function(j){
     if(cat!==S.cat||qty!==S.qty)return;S.hist=j.bars||{};Object.keys(S.hist).forEach(function(m){for(var k in S.hist[m]){if(Math.min.apply(null,S.hist[m][k].slice(0,4))<MINP)delete S.hist[m][k]}});S.histOk=true;S.histAt=Date.now();
   }).catch(function(){if(cat===S.cat&&qty===S.qty){S.hist={};S.histOk=false}}).then(function(){render()});
 }
