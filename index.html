@@ -71,7 +71,7 @@ var REPO_DATA='https://raw.githubusercontent.com/whysowlee/ticket-candles/refs/h
 var API='https://www.ticketbay.co.kr/ticketbayApi/product/v1/public/products';
 var SITE='https://www.ticketbay.co.kr';
 var GAMES={6948:'한국시리즈 1차전 [수원]',6949:'한국시리즈 2차전 [수원]',6950:'한국시리즈 3차전 [대구]',6951:'한국시리즈 4차전 [대구]',6952:'한국시리즈 5차전 [대구]',6953:'한국시리즈 6차전 [수원]',6954:'한국시리즈 7차전 [수원]'};
-var ALL='★ 전체',TH=100000;
+var ALL='★ 전체',TH=100000,MINP=10000;
 var S={cat:6950,qty:'2',bucket:60000,poll:20000,paused:false,sel:null,hover:null,items:[],prev:null,logs:[],hist:{},live:{},lastG:null,busy:false,next:0,histOk:false,histAt:0};
 var $=function(s){return document.querySelector(s)};
 function man(n){return parseFloat((n/10000).toFixed(2))+'만'}
@@ -86,7 +86,7 @@ var cs=$('#cat');for(var gk in GAMES){var o=document.createElement('option');o.v
 function loadHist(){
   var cat=S.cat,qty=S.qty;
   return fetch(REPO_DATA+cat+'-'+qty+'.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
-    if(cat!==S.cat||qty!==S.qty)return;S.hist=j.bars||{};S.histOk=true;S.histAt=Date.now();
+    if(cat!==S.cat||qty!==S.qty)return;S.hist=j.bars||{};Object.keys(S.hist).forEach(function(m){for(var k in S.hist[m]){if(Math.min.apply(null,S.hist[m][k].slice(0,4))<MINP)delete S.hist[m][k]}});S.histOk=true;S.histAt=Date.now();
   }).catch(function(){if(cat===S.cat&&qty===S.qty){S.hist={};S.histOk=false}}).then(function(){render()});
 }
 function fetchAll(){
@@ -116,8 +116,8 @@ function poll(){
   fetchAll().then(function(items){
     if(cat!==S.cat||qty!==S.qty)return;
     var by={},all=Infinity;
-    items.forEach(function(x){var k=x.grade||'기타',e=by[k]||(by[k]=[Infinity,0]);e[0]=Math.min(e[0],x.price);e[1]++;all=Math.min(all,x.price)});
-    if(items.length)by[ALL]=[all,items.length];
+    items.forEach(function(x){if(x.price<MINP)return;var k=x.grade||'기타',e=by[k]||(by[k]=[Infinity,0]);e[0]=Math.min(e[0],x.price);e[1]++;all=Math.min(all,x.price)});
+    if(isFinite(all))by[ALL]=[all,items.length];
     addLive(Date.now(),by);S.lastG=by;diff(items);S.items=items;
     $('#dot').className='dot';$('#stx').textContent='실시간 '+hm(Date.now())+' · 매물 '+items.length;
     render();

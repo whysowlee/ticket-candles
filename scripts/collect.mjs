@@ -13,6 +13,7 @@ const STOP_AT = Date.parse('2026-11-06T09:30:00Z'); // 경기 시작(18:30 KST)
 const KEEP_MS = 4 * 24 * 3600 * 1000;
 const DIR = process.env.DATA_DIR || 'datawt';
 const ALL = '★ 전체';
+const MIN_PRICE = 10000; // 1,000원 같은 명백한 오기입 매물은 제외
 const HEADERS = {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
@@ -27,7 +28,10 @@ const fpath = (c, q) => `${DIR}/${c}-${q}.json`;
 function load(c, q) {
   try {
     const j = JSON.parse(fs.readFileSync(fpath(c, q), 'utf8'));
-    if (j && j.bars) return j;
+    if (j && j.bars) {
+      for (const m of Object.keys(j.bars)) for (const k of Object.keys(j.bars[m])) if (Math.min(...j.bars[m][k].slice(0, 4)) < MIN_PRICE) delete j.bars[m][k];
+      return j;
+    }
   } catch (e) { /* 새로 시작 */ }
   return { v: 1, bars: {} };
 }
@@ -63,13 +67,14 @@ function summarize(items) {
   const by = {};
   let all = Infinity;
   for (const x of items) {
+    if (x.price < MIN_PRICE) continue;
     const k = x.grade || '기타';
     const e = by[k] || (by[k] = [Infinity, 0]);
     e[0] = Math.min(e[0], x.price);
     e[1] += 1;
     all = Math.min(all, x.price);
   }
-  if (items.length) by[ALL] = [all, items.length];
+  if (Number.isFinite(all)) by[ALL] = [all, items.length];
   return by;
 }
 
